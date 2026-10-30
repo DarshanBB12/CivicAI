@@ -1,5 +1,7 @@
 // Synthetic, fictional data only. Run: npm run seed   (all logins use password: Password@123)
 require('dotenv').config();
+const dns = require('dns');
+try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch (e) {}
 const mongoose = require('mongoose'), bcrypt = require('bcryptjs');
 const { User, Complaint, WorkerAssignment } = require('./models');
 const { intake } = require('./ai');
