@@ -28,8 +28,12 @@ const { intake, hotspots, analyze, findDuplicates } = require('./ai');
 const app = express();
 
 // Security and middleware
-app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(cors());
+app.use(helmet({ crossOriginResourcePolicy: false, contentSecurityPolicy: false }));
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Local image storage
@@ -949,8 +953,23 @@ app.get('/api/health', wrap(async (req, res) => {
   });
 }));
 
-// Root redirect
-app.get('/', (_, res) => res.send('CivicAI API Server Running. Open frontend at http://localhost:5173'));
+// Serve React frontend in production (built into server/public by render.yaml buildCommand)
+const publicDir = path.join(__dirname, 'public');
+if (process.env.NODE_ENV === 'production' && fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+  // For any non-API route, return the React app (SPA fallback)
+  app.get('*', (_, res) => {
+    const indexPath = path.join(publicDir, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send('Frontend not found. Please check build.');
+    }
+  });
+} else {
+  // Development fallback
+  app.get('/', (_, res) => res.send('CivicAI API Server Running. Open frontend at http://localhost:5173'));
+}
 
 // Server Launch
 const PORT = process.env.PORT || 5000;
